@@ -1,6 +1,10 @@
 var http = require('http').createServer(handler); //require http server, and create server with function handler()
 var fs = require('fs'); //require filesystem module
 var io = require('socket.io')(http) //require socket.io module and pass the http object (server)
+
+var Gpio = require('onoff').Gpio;
+var LED = new Gpio(4, 'out');
+
 var Gpio = require('pigpio').Gpio, //include pigpio to interact with the GPIO
     ledRed = new Gpio(4, { mode: Gpio.OUTPUT }), //use GPIO pin 4 as output for RED
     ledGreen = new Gpio(12, { mode: Gpio.OUTPUT }), //use GPIO pin 17 as output for GREEN
@@ -41,11 +45,23 @@ io.sockets.on('connection', function (socket) {// Web Socket Connection
         ledGreen.pwmWrite(greenRGB); //set GREEN LED to specified value
         ledBlue.pwmWrite(blueRGB); //set BLUE LED to specified value
     });
+
+    var lightvalue = 0;
+    socket.on('light', function (data) {
+        lightvalue = data;
+        if (lightvalue != LED.readSync()) {
+            LED.writeSync(lightvalue);
+            console.log("lightvalue : " + lightvalue);
+            socket.emit('light', lightvalue);
+        }
+    });
 });
 
 process.on('SIGINT', function () { //on ctrl+c
     ledRed.digitalWrite(0); // Turn RED LED off
     ledGreen.digitalWrite(0); // Turn GREEN LED off
     ledBlue.digitalWrite(0); // Turn BLUE LED off
+    LED.writeSync(0); // Turn LED off
+    LED.unexport(); // Unexport LED GPIO to free resources
     process.exit(); //exit completely
 });
