@@ -1,9 +1,6 @@
-var http = require('http') //require http server, and create server with function handler()
-var fs = require('fs'); //require filesystem module
-var io = require('socket.io')(http) //require socket.io module and pass the http object (server)
-
-var Gpio = require('onoff').Gpio;
-var LED = new Gpio(4, 'out');
+var http = require('http');
+var express = require('express');
+var app = express();
 
 var Gpio = require('pigpio').Gpio, //include pigpio to interact with the GPIO
     ledRed = new Gpio(4, { mode: Gpio.OUTPUT }), //use GPIO pin 4 as output for RED
@@ -18,34 +15,24 @@ ledRed.digitalWrite(0); // Turn RED LED off
 ledGreen.digitalWrite(0); // Turn GREEN LED off
 ledBlue.digitalWrite(0); // Turn BLUE LED off
 
+app.get('/', function (req, res) {
+    res.sendFile(__dirname + '/public/index.html')
+  });
 
-http.createServer(function handler(req, res) { //what to do on requests to port 8080
-    fs.readFile(__dirname + '/public/index.html', function (err, data) { //read file rgb.html in public folder
-        if (err) {
-            res.writeHead(404, { 'Content-Type': 'text/html' }); //display 404 on error
-            return res.end("404 Not Found");
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html' }); //write HTML
-        res.write(data); //write data from rgb.html
-        return res.end();
-    });
+app.get('/node/core/voltage/', function (req, res) {
+    res.send(String(volts));
+});
 
-    req.on('error', err => {
-        console.error(err);
-        // Handle error...
-        res.statusCode = 400;
-        res.end('400: Bad Request');
-        return;
-    });
+app.get('*', function (req, res) {
+    res.status(404).send('Unrecognised API call');
+});
 
-    req.on('goiaba/message', err => {
-        console.log(err);
-        // Handle error...
-        res.statusCode = 200;
-        res.end('400: Bad Request');
-        return;
-    });
-
+app.use(function (err, req, res, next) {
+    if (req.xhr) {
+        res.status(500).send('Oops, Something went wrong!');
+    } else {
+        next(err);
+    }
 });
 
 io.sockets.on('connection', function (socket) {// Web Socket Connection
@@ -82,7 +69,7 @@ process.on('SIGINT', function () { //on ctrl+c
     process.exit(); //exit completely
 });
 
-// 
-http.listen(5000, () => {
+
+app.listen(5000, () => {
     console.log('server running 5000');
 });
