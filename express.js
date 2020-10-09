@@ -19,8 +19,8 @@ app.get('/', function (req, res) {
     res.sendFile(__dirname + '/public/index.html')
   });
 
-app.get('/node/core/voltage/', function (req, res) {
-    res.send(String(volts));
+app.get('/goiaba/message/', function (req, res) {
+    res.send(String('message from node'));
 });
 
 app.get('*', function (req, res) {
