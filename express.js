@@ -1,23 +1,23 @@
 var http = require('http');
 var express = require('express');
 var app = express();
+var io = require('socket.io')(http);
+var cors = require('cors');
+var Gpio = require('pigpio').Gpio,
+    ledRed = new Gpio(4, { mode: Gpio.OUTPUT }),
+    ledGreen = new Gpio(12, { mode: Gpio.OUTPUT }),
+    ledBlue = new Gpio(26, { mode: Gpio.OUTPUT }),
+    redRGB = 0,
+    greenRGB = 0,
+    blueRGB = 0;
 
-var Gpio = require('pigpio').Gpio, //include pigpio to interact with the GPIO
-    ledRed = new Gpio(4, { mode: Gpio.OUTPUT }), //use GPIO pin 4 as output for RED
-    ledGreen = new Gpio(12, { mode: Gpio.OUTPUT }), //use GPIO pin 17 as output for GREEN
-    ledBlue = new Gpio(26, { mode: Gpio.OUTPUT }), //use GPIO pin 27 as output for BLUE
-    redRGB = 0, //set starting value of RED variable to off (0 for common cathode)
-    greenRGB = 0, //set starting value of GREEN variable to off (0 for common cathode)
-    blueRGB = 0; //set starting value of BLUE variable to off (0 for common cathode)
-
-//RESET RGB LED
-ledRed.digitalWrite(0); // Turn RED LED off
-ledGreen.digitalWrite(0); // Turn GREEN LED off
-ledBlue.digitalWrite(0); // Turn BLUE LED off
+ledRed.digitalWrite(0);
+ledGreen.digitalWrite(0);
+ledBlue.digitalWrite(0);
 
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/public/index.html')
-  });
+});
 
 app.get('/goiaba/message/', function (req, res) {
     res.send(String('message from node'));
@@ -35,18 +35,16 @@ app.use(function (err, req, res, next) {
     }
 });
 
-io.sockets.on('connection', function (socket) {// Web Socket Connection
-    socket.on('rgbLed', function (data) { //get light switch status from client
-        console.log(data); //output data from WebSocket connection to console
-
-        //for common cathode RGB LED 0 is fully off, and 255 is fully on
+io.sockets.on('connection', function (socket) {
+    socket.on('rgbLed', function (data) {
+        console.log(data); 
         redRGB = parseInt(data.red);
         greenRGB = parseInt(data.green);
         blueRGB = parseInt(data.blue);
 
-        ledRed.pwmWrite(redRGB); //set RED LED to specified value
-        ledGreen.pwmWrite(greenRGB); //set GREEN LED to specified value
-        ledBlue.pwmWrite(blueRGB); //set BLUE LED to specified value
+        ledRed.pwmWrite(redRGB);
+        ledGreen.pwmWrite(greenRGB);
+        ledBlue.pwmWrite(blueRGB);
     });
 
     var lightvalue = 0;
@@ -60,13 +58,13 @@ io.sockets.on('connection', function (socket) {// Web Socket Connection
     });
 });
 
-process.on('SIGINT', function () { //on ctrl+c
-    ledRed.digitalWrite(0); // Turn RED LED off
-    ledGreen.digitalWrite(0); // Turn GREEN LED off
-    ledBlue.digitalWrite(0); // Turn BLUE LED off
-    LED.writeSync(0); // Turn LED off
-    LED.unexport(); // Unexport LED GPIO to free resources
-    process.exit(); //exit completely
+process.on('SIGINT', function () { 
+    ledRed.digitalWrite(0);
+    ledGreen.digitalWrite(0);
+    ledBlue.digitalWrite(0);
+    LED.writeSync(0);
+    LED.unexport();
+    process.exit();
 });
 
 
