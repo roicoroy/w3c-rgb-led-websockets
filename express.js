@@ -68,6 +68,6 @@ process.on('SIGINT', function () {
 });
 
 
-app.listen(5000, () => {
+app.use(cors).listen(5000, () => {
     console.log('server running 5000');
 });
